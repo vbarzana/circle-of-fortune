@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Circle with Names</title>
+    <style>
+      canvas {
+        border: 1px solid black;
+        float: left;
+      }
+
+      #inputContainer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        float: left;
+        margin-left: 10px;
+      }
+
+      #nameInput {
+        height: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <canvas id="myCanvas" width="400" height="400"></canvas>
+      <div id="inputContainer">
+        <label>Who's next</label>
+        <textarea id="nameInput" placeholder="Enter names separated by new lines" oninput="updateNames()">
+Paul
+Erik
+Aleksi
+Felipe
+Janne
+Toni
+Gilberto
+Guido
+Joakim
+Kaisu
+Lauri</textarea
+        >
+        <button onclick="startRotation()">We Make You Pay</button>
+      </div>
+    </div>
+
+    <script>
+      let names = [];
+      let particles = [];
+
+      let canvas = document.getElementById('myCanvas');
+      let ctx = canvas.getContext('2d');
+
+      let centerX = canvas.width / 2;
+      let centerY = canvas.height / 2;
+      let radius = 150;
+      let angle = 0;
+      let rotation = 0;
+      let targetRotation = 0;
+      let isRotating = false;
+      let selectedIndex = null;
+
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      function startRotation() {
+        if (!isRotating) {
+          targetRotation += Math.PI * 2; // Rotate by 360 degrees (2*pi radians)
+          rotateCircle();
+        }
+      }
+
+      function rotateCircle() {
+        isRotating = true;
+
+        // Calculate the incremental rotation step
+        let step = Math.PI / 180; // Rotate by 1 degree (1*pi/180 radians)
+        let remainingRotation = targetRotation - rotation;
+        let rotationDirection = remainingRotation > 0 ? 1 : -1;
+        let absRemainingRotation = Math.abs(remainingRotation);
+        drawCircle();
+
+        if (absRemainingRotation <= step) {
+          // Stop rotating once the target rotation is reached
+          rotation = targetRotation;
+          isRotating = false;
+
+          // Start the particles animation
+          particles = [];
+          createParticles();
+          animateParticles();
+          setTimeout(function () {
+            particles = [];
+          }, 1500);
+        } else {
+          // Continue rotating
+          rotation += step * rotationDirection;
+          requestAnimationFrame(rotateCircle);
+        }
+      }
+
+      function updateNames() {
+        let nameInput = document.getElementById('nameInput');
+        let inputNames = nameInput.value.split('\n').map((name) => name.trim());
+
+        // Remove any empty names from the input
+        inputNames = inputNames.filter((name) => name !== '');
+
+        names = [...inputNames];
+        angle = (2 * Math.PI) / names.length;
+
+        // Redraw the circle
+        drawCircle();
+      }
+
+      function drawCircle() {
+        // Clear the canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw the circle
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        // Draw the names around the circle
+        for (let i = 0; i < names.length; i++) {
+          let name = names[i];
+          let x = centerX + radius * Math.cos(i * angle + rotation);
+          let y = centerY + radius * Math.sin(i * angle + rotation);
+
+          ctx.fillText(name, x, y);
+        }
+      }
+
+      function Particle(x, y, radius, color, velocity) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.color = color;
+        this.velocity = velocity;
+
+        this.draw = function () {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+          ctx.fillStyle = this.color;
+          ctx.fill();
+        };
+
+        this.update = function () {
+          this.x += this.velocity.x;
+          this.y += this.velocity.y;
+          this.velocity.x *= 0.99;
+          this.velocity.y *= 0.99;
+        };
+      }
+
+      function createParticles() {
+        let textWidth = ctx.measureText(names[0]).width;
+        let textHeight = parseInt(ctx.font);
+
+        for (let x = centerX - textWidth / 2; x < centerX + textWidth / 2; x += 2) {
+          for (let y = centerY - textHeight / 2; y < centerY + textHeight / 2; y += 2) {
+            let color = getRandomColor();
+            let radius = 2;
+            let velocity = {
+              x: (Math.random() - 0.5) * 4,
+              y: (Math.random() - 0.5) * 4,
+            };
+
+            particles.push(new Particle(x, y, radius, color, velocity));
+          }
+        }
+      }
+
+      function getRandomColor() {
+        let letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+          color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+      }
+
+      function animateParticles() {
+        if (particles.length > 0) {
+          requestAnimationFrame(animateParticles);
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          for (let i = 0; i < particles.length; i++) {
+            particles[i].update();
+            particles[i].draw();
+
+            if (particles[i].radius <= 0.1) {
+              particles.splice(i, 1);
+              i--;
+            }
+          }
+        } else {
+          // Animation completed, select a random name
+          selectedIndex = Math.floor(Math.random() * names.length);
+          let selectedName = names[selectedIndex];
+
+          // Remove the particles
+          particles = [];
+
+          // Repaint the circle with the names
+          drawCircle();
+
+          // Show the selected name in an alert
+          alert('Selected Name: ' + selectedName);
+        }
+      }
+
+      // Initial drawing of the circle
+      updateNames();
+    </script>
+  </body>
+</html>
